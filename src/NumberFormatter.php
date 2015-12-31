@@ -67,24 +67,60 @@ class NumberFormatter {
 	}
 
 	/**
+	 * @since 2.4
+	 *
+	 * @param mixed $value input number
+	 * @param integer|false $precision
+	 *
+	 * @return string
+	 */
+	public function getFormattedNumberByPrecision( $value, $precision = false ) {
+
+		if ( $precision === false ) {
+			return $value;
+		}
+
+		// Format to some level of precision; number_format does rounding and
+		// locale formatting, x and y are used temporarily since number_format
+		// supports only single characters for either
+		$value = number_format( (float)$value, $precision, 'x', 'y' );
+		$value = str_replace(
+			array( 'x', 'y' ),
+			array(
+				$this->getDecimalSeparatorForUserLanguage(),
+				$this->getThousandsSeparatorForContentLanguage()
+			),
+			$value
+		);
+
+		return $value;
+	}
+
+	/**
 	 * This method formats a float number value according to the given language and
 	 * precision settings, with some intelligence to produce readable output. Used
 	 * to format a number that was not hand-formatted by a user.
 	 *
 	 * @param mixed $value input number
-	 * @param integer $decplaces optional positive integer, controls how many digits after
+	 * @param integer|false $precision optional positive integer, controls how many digits after
 	 * the decimal point are shown
 	 *
 	 * @since 2.1
 	 *
 	 * @return string
 	 */
-	public function formatNumberToLocalizedText( $value, $decplaces = 3 ) {
+	public function getLocalizedFormattedNumber( $value, $precision = false ) {
 
+		if ( $precision !== false ) {
+			return $this->getFormattedNumberByPrecision( $value, $precision );
+		}
+
+		// BC configuration to keep default behaviour
+		$precision = 3;
 		$decseparator = $this->getDecimalSeparatorForUserLanguage();
 
 		// If number is a trillion or more, then switch to scientific
-		// notation. If number is less than 0.0000001 (i.e. twice decplaces),
+		// notation. If number is less than 0.0000001 (i.e. twice precision),
 		// then switch to scientific notation. Otherwise print number
 		// using number_format. This may lead to 1.200, so then use trim to
 		// remove trailing zeroes.
@@ -93,19 +129,19 @@ class NumberFormatter {
 		// @todo: Don't do all this magic for integers, since the formatting does not fit there
 		//       correctly. E.g. one would have integers formatted as 1234e6, not as 1.234e9, right?
 		// The "$value!=0" is relevant: we want to scientify numbers that are close to 0, but never 0!
-		if ( ( $decplaces > 0 ) && ( $value != 0 ) ) {
+		if ( ( $precision > 0 ) && ( $value != 0 ) ) {
 			$absValue = abs( $value );
 			if ( $absValue >= $this->maxNonExpNumber ) {
 				$doScientific = true;
-			} elseif ( $absValue < pow( 10, - $decplaces ) ) {
+			} elseif ( $absValue < pow( 10, - $precision ) ) {
 				$doScientific = true;
 			} elseif ( $absValue < 1 ) {
-				if ( $absValue < pow( 10, - $decplaces ) ) {
+				if ( $absValue < pow( 10, - $precision ) ) {
 					$doScientific = true;
 				} else {
 					// Increase decimal places for small numbers, e.g. .00123 should be 5 places.
 					for ( $i = 0.1; $absValue <= $i; $i *= 0.1 ) {
-						$decplaces++;
+						$precision++;
 					}
 				}
 			}
@@ -124,7 +160,7 @@ class NumberFormatter {
 		} else {
 			// Format to some level of precision; number_format does rounding and locale formatting,
 			// x and y are used temporarily since number_format supports only single characters for either
-			$value = number_format( $value, $decplaces, 'x', 'y' );
+			$value = number_format( $value, $precision, 'x', 'y' );
 			$value = str_replace(
 				array( 'x', 'y' ),
 				array( $decseparator, $this->getThousandsSeparatorForContentLanguage() ),
@@ -133,7 +169,7 @@ class NumberFormatter {
 
 			// Make it more readable by removing ending .000 from nnn.000
 			//    Assumes substr is faster than a regular expression replacement.
-			$end = $decseparator . str_repeat( '0', $decplaces );
+			$end = $decseparator . str_repeat( '0', $precision );
 			$lenEnd = strlen( $end );
 
 			if ( substr( $value, - $lenEnd ) === $end ) {

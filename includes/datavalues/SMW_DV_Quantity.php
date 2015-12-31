@@ -111,11 +111,13 @@ class SMWQuantityValue extends SMWNumberValue {
 
 		$this->m_unitin = $this->m_unitids[$printunit];
 		$this->m_unitvalues = false; // this array depends on m_unitin if displayunits were used, better invalidate it here
+
 		$value = $this->m_dataitem->getNumber() * $this->m_unitfactors[$this->m_unitin];
 
 		$this->m_caption = '';
+
 		if ( $this->m_outformat != '-u' ) { // -u is the format for displaying the unit only
-			$this->m_caption .= ( ( $this->m_outformat != '-' ) && ( $this->m_outformat != '-n' ) ? NumberFormatter::getInstance()->formatNumberToLocalizedText( $value ) : $value );
+			$this->m_caption .= ( ( $this->m_outformat != '-' ) && ( $this->m_outformat != '-n' ) ? NumberFormatter::getInstance()->getLocalizedFormattedNumber( $value, $this->getPrecision() ) : $value );
 		}
 
 		if ( ( $printunit !== '' ) && ( $this->m_outformat != '-n' ) ) { // -n is the format for displaying the number only

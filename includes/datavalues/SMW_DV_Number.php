@@ -64,6 +64,11 @@ class SMWNumberValue extends SMWDataValue {
 	protected $m_unitin;
 
 	/**
+	 * @var integer|null
+	 */
+	protected $precision = null;
+
+	/**
 	 * Parse a string of the form "number unit" where unit is optional. The
 	 * results are stored in the $number and $unit parameters. Returns an
 	 * error code.
@@ -181,7 +186,7 @@ class SMWNumberValue extends SMWDataValue {
 			$sep = '';
 			foreach ( $this->m_unitvalues as $unit => $value ) {
 				if ( $unit != $this->m_unitin ) {
-					$number = NumberFormatter::getInstance()->formatNumberToLocalizedText( $value );
+					$number = NumberFormatter::getInstance()->getLocalizedFormattedNumber( $value, $this->getPrecision() );
 					if ( $unit !== '' ) {
 						$tooltip .= isset( $this->prefixalUnitPreference[$unit] ) && $this->prefixalUnitPreference[$unit] ? $unit . '&#160;' . $number : $number . '&#160;' . $unit;
 					} else{
@@ -225,7 +230,7 @@ class SMWNumberValue extends SMWDataValue {
 				} elseif ( $i > 1 ) {
 					$result .= ', ';
 				}
-				$number = ( $this->m_outformat != '-' ? NumberFormatter::getInstance()->formatNumberToLocalizedText( $value ) : $value );
+				$number = ( $this->m_outformat != '-' ? NumberFormatter::getInstance()->getLocalizedFormattedNumber( $value, $this->getPrecision() ) : $value );
 				if ( $unit !== '' ) {
 					$result .= isset( $this->prefixalUnitPreference[$unit] ) && $this->prefixalUnitPreference[$unit] ? $unit . '&#160;' . $number : $number . '&#160;' . $unit;
 				} else {
@@ -258,7 +263,7 @@ class SMWNumberValue extends SMWDataValue {
 		}
 
 		$unit = $this->getUnit();
-		$number = NumberFormatter::getInstance()->formatNumberToLocalizedText( $this->m_dataitem->getSerialization() ) ;
+		$number = NumberFormatter::getInstance()->getLocalizedFormattedNumber( $this->m_dataitem->getSerialization(), $this->getPrecision() ) ;
 
 		if ( $unit === '' ) {
 			return $number;
@@ -352,8 +357,11 @@ class SMWNumberValue extends SMWDataValue {
 	 */
 	protected function makeUserValue() {
 		$this->m_caption = '';
+
+		$number = $this->m_dataitem->getNumber();
+
 		if ( $this->m_outformat != '-u' ) { // -u is the format for displaying the unit only
-			$this->m_caption .= ( ( $this->m_outformat != '-' ) && ( $this->m_outformat != '-n' ) ? NumberFormatter::getInstance()->formatNumberToLocalizedText( $this->m_dataitem->getNumber() ) : $this->m_dataitem->getNumber() );
+			$this->m_caption .= ( ( $this->m_outformat != '-' ) && ( $this->m_outformat != '-n' ) ? NumberFormatter::getInstance()->getLocalizedFormattedNumber( $number, $this->getPrecision() ) : $number );
 		}
 		// no unit ever, so nothing to do about this
 		$this->m_unitin = '';
@@ -367,6 +375,30 @@ class SMWNumberValue extends SMWDataValue {
 	 */
 	public function getUnitList() {
 		return array( '' );
+	}
+
+	protected function getPrecision() {
+
+		if ( $this->m_property === null ) {
+			return false;
+		}
+
+		if ( $this->precision === null ) {
+
+			$dataItems = \SMW\StoreFactory::getStore()->getPropertyValues(
+				$this->m_property->getDIWikiPage(),
+				new SMWDIProperty( '_PREC' )
+			);
+
+			if ( $dataItems === array() ) {
+				return $this->precision = false;
+			}
+
+			$dataItem = current( $dataItems );
+			$this->precision = abs( $dataItem->getNumber() );
+		}
+
+		return $this->precision;
 	}
 
 }

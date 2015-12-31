@@ -35,13 +35,13 @@ class NumberFormatterTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @dataProvider numberProvider
 	 */
-	public function testFormatNumberToLocalizedText( $maxNonExpNumber, $number, $expected ) {
+	public function testLocalizedFormattedNumber( $maxNonExpNumber, $number, $expected ) {
 
 		$instance = new NumberFormatter( $maxNonExpNumber );
 
 		$this->assertEquals(
 			$expected,
-			$instance->formatNumberToLocalizedText( $number )
+			$instance->getLocalizedFormattedNumber( $number )
 		);
 	}
 
